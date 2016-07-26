@@ -1,4 +1,5 @@
 import pygame
+from snowflake import Snowflake
 from pygame.locals import *
 
 def main():
@@ -7,15 +8,14 @@ def main():
 	screen = pygame.display.set_mode((800, 600))
 	pygame.display.set_caption("Pygame Testing")
 
+
 	background = pygame.Surface(screen.get_size())
 	background = background.convert()
-	background.fill((250, 0, 0))
+	background.fill((200, 200, 200))
 
-	font = pygame.font.Font(None, 36)
-	text = font.render("HELLO FRIENDO", 1, (10, 10, 10))
-	textpos = text.get_rect()
-	textpos.centerx = background.get_rect().centerx
-	background.blit(text, textpos)
+	for i in range(0, 10):
+
+		Snowflake(((i + 1) * 55, (i + 1) * 55), i * 5 + 30, 0, 0, 0, i / 2, (800, 600)).draw_snowflake(background)
 
 	screen.blit(background, (0, 0))
 	pygame.display.flip()

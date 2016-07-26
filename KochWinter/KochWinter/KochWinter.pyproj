@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>a7496dcd-1bfd-468a-803d-b817254fa376</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>KochWinter.py</StartupFile>
+    <StartupFile>koch_winter.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,11 +23,11 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="KochWinter.py" />
-    <Compile Include="Snowflake.py">
+    <Compile Include="koch_winter.py" />
+    <Compile Include="snowflake.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Utils\Utils.py">
+    <Compile Include="Utils\utils.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

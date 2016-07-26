@@ -1,5 +1,6 @@
 import random
 import math
+import pygame
 
 class Snowflake:
 
@@ -13,12 +14,12 @@ class Snowflake:
 		self.dir = dir
 		self.theta = 0
 		self.depth = depth
-		self.velocity = (Math.sin(self.theta) * self.dir, speed)
+		self.velocity = (math.sin(self.theta) * self.dir, speed)
 		self.wind = (0, 0)
 		self.damping = 0.01 # damping factor so wind dies down
 		self.debug = False
 		self.blue = random.randrange(20) # how blue the snowflakes should be
-		self.stoke_color = 155 - math.floor(size * 3)
+		self.stroke_color = 0
 		self.screen_size = screen_size
 		self.offsets = self.generate_snowflake()
 
@@ -46,6 +47,49 @@ class Snowflake:
 		# update rotation
 		self.theta += (self.rot_speed + self.wind[1] / 200 + random.random()) * (time / 1000.0)
 		self.velocity[0] = 100 * math.sin(self.theta) * self.dir
+
+	# renders the snowflake to the given surface
+	def render(self, surface):
+
+		self.draw_snowflake(surface)
+
+		if self.debug:
+
+			self.draw_debug_info(surface)
+
+
+	# draws the actual lines of the snowflake
+	def draw_snowflake(self, surface):
+		
+		cos_theta = math.cos(self.theta)
+		sin_theta = math.sin(self.theta)
+
+		fill_color = (255 - self.blue, 255 - self.blue, 255)
+		stroke_color = (self.stroke_color, self.stroke_color, self.stroke_color)
+
+		points = []
+
+		for offset in self.offsets:
+
+			#rotate the point
+			point = (offset[0] * cos_theta - offset[1] * sin_theta, 
+					offset[1] * sin_theta + offset[1] * cos_theta)
+
+			# convert the offset ot a location
+			point = (point[0] + self.loc[0], point[1] + self.loc[1])
+
+			points.append(point)
+
+
+		# draw the points
+		pygame.draw.polygon(surface, fill_color, points) # fill
+		pygame.draw.polygon(surface, stroke_color, points, 1) # border
+
+
+	def draw_debug_info(self, surface):
+
+		total_velocity = (0, 0)
+
 
 	# generates the snowflake's points based on the depth and size
 	def generate_snowflake(self):
@@ -78,8 +122,10 @@ class Snowflake:
 					koch_points = self.koch_recurse(points[i], points[i + 1])
 
 				# TODO: make sure this works
-				koch_points = koch_points[-1:]
-				depth -= 1
+				new_points = new_points + koch_points[:-1]
+
+			points = new_points
+			depth -= 1
 
 		return points
 
