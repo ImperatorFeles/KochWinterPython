@@ -1,52 +1,55 @@
 import random
 import math
 import pygame
+from pygame import gfxdraw
 
 class Snowflake:
 
 	# creates a new snowflake
 	def __init__(self, start_loc, size, speed, rot_speed, dir, depth, screen_size):
 
-		self.loc = start_loc
+		self._loc = start_loc
 		self.size = size
-		self.velocity = (0.0, 0.0)
-		self.rot_speed = rot_speed
-		self.dir = dir
-		self.theta = 0
+		self._velocity = (0.0, 0.0)
+		self._rot_speed = rot_speed
+		self._dir = dir
+		self._theta = 0
 		self.depth = depth
-		self.velocity = (math.sin(self.theta) * self.dir, speed)
-		self.wind = (0, 0)
-		self.damping = 0.01 # damping factor so wind dies down
+		self._velocity = [math.sin(self._theta) * self._dir, speed]
+		self.wind = [0, 0]
+		self._damping = 0.001 # damping factor so wind dies down
 		self.debug = False
-		self.blue = random.randrange(20) # how blue the snowflakes should be
-		self.stroke_color = 0
-		self.screen_size = screen_size
-		self.offsets = self.generate_snowflake()
+		self._stroke_color = (0, 0, 0)
+		self._screen_size = screen_size
+		self._offsets = self.generate_snowflake()
+
+		blue = random.randrange(20) # how blue the snowflakes should be
+		self._fill_color = (255 - blue, 255 - blue, 255)
 
 	# updates the snowflake's position and rotation based on the time passed
 	def update(self, time):
 
 		# update position
-		self.loc[0] += (time / 1000.0) * (self.velocity[0] + self.wind[0]) * self.size / 50
-		self.loc[1] += (time / 1000.0) * (self.velocity[1] + self.wind[1]) * self.size / 50
+		self._loc[0] += (time / 1000.0) * (self._velocity[0] + self.wind[0]) * self.size / 50
+		self._loc[1] += (time / 1000.0) * (self._velocity[1] + self.wind[1]) * self.size / 50
 
 		# apply damping
 		if self.wind[0] < 0.001 or self.wind[0] > 0.001:
-			self.wind[0] -= self.wind[0] * self.damping
+			self.wind[0] -= self.wind[0] * self._damping
 
 		if self.wind[1] < 0.001 or self.wind[1] > 0.001:
-			self.wind[1] -= self.wind[1] * self.damping
+			self.wind[1] -= self.wind[1] * self._damping
 
 		# bring snowflake to other side of screen outside of screen
 		# in a way proportional to how far out it is
-		if self.loc[0] > screen_size[0] + 50 or self.loc[0] < -50:
-			self.loc[0] = -(self.loc[0] - screen_size[0])
-		if self.loc[1] > screen_size[1] + 50 or self.loc[1] < -50:
-			self.loc[1] = -(self.loc[1] - screen_size[1])
+		if self._loc[0] > self._screen_size[0] + 50 or self._loc[0] < -50:
+			self._loc[0] = -(self._loc[0] - self._screen_size[0])
+		if self._loc[1] > self._screen_size[1] + 50 or self._loc[1] < -50:
+			self._loc[1] = -(self._loc[1] - self._screen_size[1])
 
 		# update rotation
-		self.theta += (self.rot_speed + self.wind[1] / 200 + random.random()) * (time / 1000.0)
-		self.velocity[0] = 100 * math.sin(self.theta) * self.dir
+		self._theta += (self._rot_speed + self.wind[1] / 200 + random.random()) * (time / 1000.0)
+		self._velocity[0] = 100 * math.sin(self._theta) * self._dir
 
 	# renders the snowflake to the given surface
 	def render(self, surface):
@@ -61,29 +64,26 @@ class Snowflake:
 	# draws the actual lines of the snowflake
 	def draw_snowflake(self, surface):
 		
-		cos_theta = math.cos(self.theta)
-		sin_theta = math.sin(self.theta)
-
-		fill_color = (255 - self.blue, 255 - self.blue, 255)
-		stroke_color = (self.stroke_color, self.stroke_color, self.stroke_color)
+		cos_theta = math.cos(self._theta)
+		sin_theta = math.sin(self._theta)
 
 		points = []
 
-		for offset in self.offsets:
+		for offset in self._offsets:
 
 			#rotate the point
 			point = (offset[0] * cos_theta - offset[1] * sin_theta, 
-					offset[1] * sin_theta + offset[1] * cos_theta)
+					offset[0] * sin_theta + offset[1] * cos_theta)
 
 			# convert the offset ot a location
-			point = (point[0] + self.loc[0], point[1] + self.loc[1])
+			point = (point[0] + self._loc[0], point[1] + self._loc[1])
 
 			points.append(point)
 
 
 		# draw the points
-		pygame.draw.polygon(surface, fill_color, points) # fill
-		pygame.draw.polygon(surface, stroke_color, points, 1) # border
+		gfxdraw.filled_polygon(surface, points, self._fill_color) # fill
+		gfxdraw.aapolygon(surface, points, self._stroke_color) # border
 
 
 	def draw_debug_info(self, surface):
@@ -95,8 +95,8 @@ class Snowflake:
 	def generate_snowflake(self):
 
 		tri_size = self.size  # length of a size
-		radius = math.sqrt(3)/6 * tri_size  # radius of inscribed circle
-		height = math.sqrt(3)/2 * tri_size  # height of triangle
+		radius = math.sqrt(3) / 6 * tri_size  # radius of inscribed circle
+		height = math.sqrt(3) / 2 * tri_size  # height of triangle
 		height_P = height - radius  # distance from center to vertex
 		start = (0, -height_P)  # starting point
 		point2 = (start[0] + tri_size / 2, start[1] + height)
@@ -111,8 +111,9 @@ class Snowflake:
 
 			new_points = []
 
-			# do 1 depth iteration by recursing each lkine segment in the current snowflake to generate the next level
-			for i in range (0, len(points)):
+			# do 1 depth iteration by recursing each lkine segment in the current
+			# snowflake to generate the next level
+			for i in range(0, len(points)):
 
 				koch_points = []
 
