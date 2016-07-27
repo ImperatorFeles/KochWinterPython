@@ -24,7 +24,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="koch_winter.py" />
-    <Compile Include="fix.py">
+    <Compile Include="snowflake.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils.py">
