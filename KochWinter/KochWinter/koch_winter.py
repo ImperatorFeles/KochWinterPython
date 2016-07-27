@@ -39,7 +39,7 @@ def main():
 	_screen.blit(_background, (0, 0))
 	pygame.display.flip()
 	
-	#cProfile.run('loop()')
+	cProfile.run('loop()')
 	loop()
 
 
@@ -120,6 +120,11 @@ def loop():
 			elif event.type == pygame.KEYUP:
 				key_pressed(event.key)
 
+		updated_flakes = 0
+
+		if (updated_flakes > len(_snowflakes)):
+			updated_flakes = 0
+
 		curr_millis = get_curr_millis()
 		elapsed_time = curr_millis - _prev_time
 
@@ -131,18 +136,20 @@ def loop():
 
 		draw_background()
 
-		if (len(_snowflakes) > 0):
-			print(_snowflakes[0].wind)
-
 		# try to add snowflakes every 10 milliseconds
 		for i in range(0, elapsed_time % 10 + 1):
 
 			# add a new snowflake if we don't have enough and rng says we should
-			if len(_snowflakes) < 300 and random.randrange(100) < 2:
+			if len(_snowflakes) < 200 and random.randrange(100) < 2:
 
 				add_snowflake()
 
 		# update the snowflakes
+		for i in range(updated_flakes, min(updated_flakes + 1, len(_snowflakes))):
+			_snowflakes[i].update(elapsed_time)
+
+		updated_flakes += 1
+
 		for flake in _snowflakes:
 
 			flake.update(elapsed_time)
@@ -150,7 +157,7 @@ def loop():
 		# draw the snowflakes
 		for flake in _snowflakes:
 
-			flake.render(_background)
+			_background.blit(flake.get_surface(), flake.loc)
 
 		if _debug:
 
@@ -186,12 +193,12 @@ def add_snowflake():
 	depth = math.floor(utils.generate_random_normal() + 1.85)
 
 	# make sure depth was generated correctly
-	while depth < 0 or depth > 4:
+	while size < 40 and depth > 1 or depth < 0 or depth > 3:
 
 		depth = math.floor(utils.generate_random_normal() + 1.85)
 
 	# make flakes besides 1 and 2 more rare
-	if depth != 1 and depth != 2 and random.randrange(100) < 40:
+	if depth != 0 and depth != 1 and random.randrange(100) < 40:
 
 		depth = 1
 

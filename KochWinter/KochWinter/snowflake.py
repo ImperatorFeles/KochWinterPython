@@ -8,7 +8,7 @@ class Snowflake:
 	# creates a new snowflake
 	def __init__(self, start_loc, size, speed, rot_speed, dir, depth, screen_size):
 
-		self._loc = start_loc
+		self.loc = start_loc
 		self.size = size
 		self._velocity = (0.0, 0.0)
 		self._rot_speed = rot_speed
@@ -21,7 +21,8 @@ class Snowflake:
 		self.debug = False
 		self._stroke_color = (0, 0, 0)
 		self._screen_size = screen_size
-		self._offsets = self.generate_snowflake()
+		self._points = self.generate_snowflake()
+		self._surface = pygame.Surface((int(math.sqrt(3) / 3 * self.size), int(math.sqrt(3) / 3 * self.size)))
 
 		blue = random.randrange(20) # how blue the snowflakes should be
 		self._fill_color = (255 - blue, 255 - blue, 255)
@@ -29,61 +30,105 @@ class Snowflake:
 	# updates the snowflake's position and rotation based on the time passed
 	def update(self, time):
 
-		# update position
-		self._loc[0] += (time / 1000.0) * (self._velocity[0] + self.wind[0]) * self.size / 50
-		self._loc[1] += (time / 1000.0) * (self._velocity[1] + self.wind[1]) * self.size / 50
+		seconds = time / 1000.0
 
+		prev_theta = self._theta
+
+		self._apply_damping()
+		self._update_rotation(seconds)
+		self._update_velocity()
+		offsets = self._get_offsets(seconds)
+			
+		# update center position	
+		self.loc[0] += offsets[0]
+		self.loc[1] += offsets[1]
+		
+		# only offset position by change in theta
+		dtheta = self._theta - prev_theta
+		cos_theta = math.cos(dtheta)
+		sin_theta = math.sin(dtheta)
+
+		# update all the points
+		for point in self._points:
+			
+			self._update_point(point, offsets, cos_theta, sin_theta)
+
+
+	def _apply_damping(self):
+		
 		# apply damping
-		if self.wind[0] < 0.001 or self.wind[0] > 0.001:
+		if math.fabs(self.wind[0]) > 0.001:
 			self.wind[0] -= self.wind[0] * self._damping
 
-		if self.wind[1] < 0.001 or self.wind[1] > 0.001:
+		if math.fabs(self.wind[1]) > 0.001:
 			self.wind[1] -= self.wind[1] * self._damping
 
-		# bring snowflake to other side of screen outside of screen
-		# in a way proportional to how far out it is
-		if self._loc[0] > self._screen_size[0] + 50 or self._loc[0] < -50:
-			self._loc[0] = -(self._loc[0] - self._screen_size[0])
-		if self._loc[1] > self._screen_size[1] + 50 or self._loc[1] < -50:
-			self._loc[1] = -(self._loc[1] - self._screen_size[1])
 
-		# update rotation
-		self._theta += (self._rot_speed + self.wind[1] / 200 + random.random()) * (time / 1000.0)
+	def _update_rotation(self, seconds):
+		
+		self._theta += (self._rot_speed + self.wind[1] / 200 + random.random()) * seconds
+
+
+	def _update_velocity(self):
+
 		self._velocity[0] = 100 * math.sin(self._theta) * self._dir
 
+
+	def _get_offsets(self, seconds):
+
+		offset_x = seconds * (self._velocity[0] + self.wind[0]) * self.size / 50
+		offset_y = seconds * (self._velocity[1] + self.wind[1]) * self.size / 50
+
+		if self.loc[0] > self._screen_size[0] + 100:
+			offset_x += -self._screen_size[0] - 150
+		elif self.loc[0] < -100:
+			offset_x += self._screen_size[0] + 150
+
+		if self.loc[1] > self._screen_size[1] + 100:
+			offset_y += -self._screen_size[1] - 150
+		elif self.loc[1] < -100:
+			offset_y += self._screen_size[1] + 150
+
+		return (offset_x, offset_y)
+
+
+	def _update_point(self, point, offsets, cos_theta, sin_theta):
+		
+		# update position
+		point[0] += offsets[0]
+		point[1] += offsets[1]
+
+		# update rotation
+		point[0] -= self.loc[0]
+		point[1] -= self.loc[1]
+
+		new_x = point[0] * cos_theta - point[1] * sin_theta
+		new_y = point[0] * sin_theta + point[1] * cos_theta
+
+		point[0] = new_x + self.loc[0]
+		point[1] = new_y + self.loc[1]
+
+
+		
 	# renders the snowflake to the given surface
-	def render(self, surface):
+	def get_surface(self):
 
-		self.draw_snowflake(surface)
+		self.draw_snowflake()
 
-		if self.debug:
+		return self._surface
 
-			self.draw_debug_info(surface)
+		#if self.debug:
+
+		#	self.draw_debug_info(surface)
 
 
 	# draws the actual lines of the snowflake
-	def draw_snowflake(self, surface):
+	def draw_snowflake(self):
 		
-		cos_theta = math.cos(self._theta)
-		sin_theta = math.sin(self._theta)
-
-		points = []
-
-		for offset in self._offsets:
-
-			#rotate the point
-			point = (offset[0] * cos_theta - offset[1] * sin_theta, 
-					offset[0] * sin_theta + offset[1] * cos_theta)
-
-			# convert the offset ot a location
-			point = (point[0] + self._loc[0], point[1] + self._loc[1])
-
-			points.append(point)
-
-
 		# draw the points
-		gfxdraw.filled_polygon(surface, points, self._fill_color) # fill
-		gfxdraw.aapolygon(surface, points, self._stroke_color) # border
+		self._surface.fill((0, 0, 0, 0))
+		gfxdraw.filled_polygon(self._surface, self._points, self._fill_color) # fill
+		gfxdraw.aapolygon(self._surface, self._points, self._stroke_color) # border
 
 
 	def draw_debug_info(self, surface):
@@ -94,13 +139,13 @@ class Snowflake:
 	# generates the snowflake's points based on the depth and size
 	def generate_snowflake(self):
 
-		tri_size = self.size  # length of a size
+		tri_size = self.size  # length of a side
 		radius = math.sqrt(3) / 6 * tri_size  # radius of inscribed circle
 		height = math.sqrt(3) / 2 * tri_size  # height of triangle
 		height_P = height - radius  # distance from center to vertex
-		start = (0, -height_P)  # starting point
-		point2 = (start[0] + tri_size / 2, start[1] + height)
-		point3 = (point2[0] - tri_size, point2[1])
+		start = [self.loc[0], self.loc[1] - height_P]  # starting point
+		point2 = [start[0] + tri_size / 2, start[1] + height]
+		point3 = [point2[0] - tri_size, point2[1]]
 
 		points = [start, point2, point3]  # start with a triangle
 		new_points = []
@@ -122,7 +167,6 @@ class Snowflake:
 				else:
 					koch_points = self.koch_recurse(points[i], points[i + 1])
 
-				# TODO: make sure this works
 				new_points = new_points + koch_points[:-1]
 
 			points = new_points
@@ -155,14 +199,14 @@ class Snowflake:
 		# sign correction if we are going right, else triangle will point wrong way
 		sign = -1 if dx < 0 else 1
 
-		tip = (segment_center[0] + sign * math.sin(angle) * tip_height,
-		 segment_center[1] - sign * math.cos(angle) * tip_height)
+		tip = [segment_center[0] + sign * math.sin(angle) * tip_height,
+		 segment_center[1] - sign * math.cos(angle) * tip_height]
 
 		# push the 5 vertices and return them
 		points.append(start)
-		points.append((start[0] + dx / 3, start[1] + dy / 3))
+		points.append([start[0] + dx / 3, start[1] + dy / 3])
 		points.append(tip)
-		points.append((end[0] - dx / 3, end[1] - dy / 3))
+		points.append([end[0] - dx / 3, end[1] - dy / 3])
 		points.append(end)
 
 		return points
