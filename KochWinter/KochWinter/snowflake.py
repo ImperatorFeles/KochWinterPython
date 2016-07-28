@@ -10,50 +10,33 @@ class Snowflake:
 
 		self.loc = start_loc
 		self.size = size
-		self._radius = math.sqrt(3) * self.size / 3 # the radius of the circle the snowflake is inscribed in
+		self.radius = math.sqrt(3) * self.size / 3 # the radius of the circle the snowflake is inscribed in
 		self._velocity = (0.0, 0.0)
 		self._rot_speed = rot_speed
 		self._dir = dir
-		self._theta = 0
+		self.theta = 0
 		self.depth = depth
-		self._velocity = [math.sin(self._theta) * self._dir, speed]
+		self._velocity = [math.sin(self.theta) * self._dir, speed]
 		self.wind = [0, 0]
-		self._damping = 0.001 # damping factor so wind dies down
+		self._damping = 0.0001 # damping factor so wind dies down
 		self.debug = False
-		self._stroke_color = (0, 0, 0)
+		self._stroke_color = (0, 0, 0, 200)
 		self._screen_size = screen_size
-		self._points = self.generate_snowflake()
-		self._surface = pygame.Surface((self._radius * 2, self._radius * 2), pygame.SRCALPHA, 32).convert_alpha()
 
 		blue = random.randrange(20) # how blue the snowflakes should be
 		self._fill_color = (255 - blue, 255 - blue, 255, 240) 
+
+		points = self.generate_snowflake()
+		self.surface = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA, 32).convert_alpha()
+		gfxdraw.aapolygon(self.surface, points, self._stroke_color) # border
+		gfxdraw.filled_polygon(self.surface, points, self._fill_color) # fill
+		gfxdraw.polygon(self.surface, points, self._stroke_color) # fill
+
 
 	# updates the snowflake's position and rotation based on the time passed
 	def update(self, time):
 
 		seconds = time / 1000.0
-
-		prev_theta = self._theta
-
-		self._apply_damping()
-		self._update_rotation(seconds)
-		self._update_velocity()
-		offsets = self._get_offsets(seconds)
-			
-		# update center position	
-		self.loc[0] += offsets[0]
-		self.loc[1] += offsets[1]
-		
-		# only offset position by change in theta
-		dtheta = self._theta - prev_theta
-		cos_theta = math.cos(dtheta)
-		sin_theta = math.sin(dtheta)
-
-		# update all the points
-		self._points = [self._update_point(point, offsets, cos_theta, sin_theta) for point in self._points]
-
-
-	def _apply_damping(self):
 		
 		# apply damping
 		if math.fabs(self.wind[0]) > 0.001:
@@ -62,15 +45,17 @@ class Snowflake:
 		if math.fabs(self.wind[1]) > 0.001:
 			self.wind[1] -= self.wind[1] * self._damping
 
+		# update rotation
+		self.theta += (self._rot_speed + self.wind[1] / 200 + random.random()) * seconds
 
-	def _update_rotation(self, seconds):
-		
-		self._theta += (self._rot_speed + self.wind[1] / 200 + random.random()) * seconds
+		# update velocity
+		self._velocity[0] = 100 * math.sin(self.theta) * self._dir
 
-
-	def _update_velocity(self):
-
-		self._velocity[0] = 100 * math.sin(self._theta) * self._dir
+		offsets = self._get_offsets(seconds)
+			
+		# update center position	
+		self.loc[0] += offsets[0]
+		self.loc[1] += offsets[1]
 
 
 	def _get_offsets(self, seconds):
@@ -91,42 +76,6 @@ class Snowflake:
 		return (offset_x, offset_y)
 
 
-	def _update_point(self, point, offsets, cos_theta, sin_theta):
-		
-		radius = self._radius
-
-		point[0] -= radius
-		point[1] -= radius
-
-		new_x = point[0] * cos_theta - point[1] * sin_theta
-		new_y = point[0] * sin_theta + point[1] * cos_theta
-
-		point[0] = new_x + radius
-		point[1] = new_y + radius
-
-		return point
-		
-	# renders the snowflake to the given surface
-	def get_surface(self):
-
-		self.draw_snowflake()
-
-		return self._surface
-
-		#if self.debug:
-
-		#	self.draw_debug_info(surface)
-
-
-	# draws the actual lines of the snowflake
-	def draw_snowflake(self):
-		
-		# draw the points
-		self._surface.fill((0, 0, 0, 0))
-		gfxdraw.filled_polygon(self._surface, self._points, self._fill_color) # fill
-		gfxdraw.aapolygon(self._surface, self._points, self._stroke_color) # border
-
-
 	def draw_debug_info(self, surface):
 
 		total_velocity = (0, 0)
@@ -139,7 +88,7 @@ class Snowflake:
 		radius = math.sqrt(3) / 6 * tri_size  # radius of inscribed circle
 		height = math.sqrt(3) / 2 * tri_size  # height of triangle
 		height_P = height - radius  # distance from center to vertex
-		start = [self._radius, self._radius - height_P]  # starting point
+		start = [self.radius, self.radius - height_P]  # starting point
 		point2 = [start[0] + tri_size / 2, start[1] + height]
 		point3 = [point2[0] - tri_size, point2[1]]
 

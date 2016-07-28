@@ -18,6 +18,7 @@ _prev_time = 0 # previous fram start time
 _curr_fps = 0 # current frames per second
 _background = None
 _screen = None
+_snowflake_time = 0
 
 def main():
 
@@ -39,8 +40,8 @@ def main():
 	_screen.blit(_background, (0, 0))
 	pygame.display.flip()
 	
-	#cProfile.run('loop()')
-	loop()
+	cProfile.run('loop()')
+	#loop()
 
 
 def key_pressed(key):
@@ -104,6 +105,7 @@ def loop():
 	global _mouse_down
 	global _prev_mouse_pos
 	global _wind
+	global _snowflake_time
 
 	while 1:
 		for event in pygame.event.get():
@@ -122,6 +124,7 @@ def loop():
 
 		curr_millis = get_curr_millis()
 		elapsed_time = curr_millis - _prev_time
+		_snowflake_time += elapsed_time
 
 		if elapsed_time == 0:
 			continue
@@ -132,17 +135,23 @@ def loop():
 		draw_background()
 
 		# try to add snowflakes every 10 milliseconds
-		for i in range(0, elapsed_time % 10 + 1):
+		if _snowflake_time > 10 and len(_snowflakes) < 200 and random.randrange(100) < 2:
 
-			# add a new snowflake if we don't have enough and rng says we should
-			if len(_snowflakes) < 200 and random.randrange(100) < 2:
+			_snowflake_time = 0
+			add_snowflake()
 
-				add_snowflake()
 
 		for flake in _snowflakes:
 
 			flake.update(elapsed_time)
-			_background.blit(flake.get_surface(), flake.loc)
+			rotated_surface = pygame.transform.rotate(flake.surface, math.degrees(flake.theta))
+
+			diameter = flake.radius + flake.radius
+
+			dx = (rotated_surface.get_width() - diameter) / 2
+			dy = (rotated_surface.get_height() - diameter) / 2
+
+			_background.blit(rotated_surface, flake.loc, (dx, dy, diameter, diameter))
 
 
 		if _debug:
@@ -156,8 +165,14 @@ def loop():
 
 def draw_background():
 
-	#TODO gradient
+	#global _curr_fps
+
+	##TODO gradient
+	#font = pygame.font.Font(None, 32)
+	#text = font.render(str(math.floor(_curr_fps)), 1, (0, 0, 0))
+
 	_background.fill((230, 230, 230))
+	#_background.blit(text, (10, 10))
 
 
 def draw_debug_info():
