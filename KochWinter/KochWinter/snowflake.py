@@ -10,6 +10,7 @@ class Snowflake:
 
 		self.loc = start_loc
 		self.size = size
+		self._radius = math.sqrt(3) * self.size / 3 # the radius of the circle the snowflake is inscribed in
 		self._velocity = (0.0, 0.0)
 		self._rot_speed = rot_speed
 		self._dir = dir
@@ -22,10 +23,10 @@ class Snowflake:
 		self._stroke_color = (0, 0, 0)
 		self._screen_size = screen_size
 		self._points = self.generate_snowflake()
-		self._surface = pygame.Surface((int(math.sqrt(3) / 3 * self.size), int(math.sqrt(3) / 3 * self.size)))
+		self._surface = pygame.Surface((self._radius * 2, self._radius * 2), pygame.SRCALPHA, 32).convert_alpha()
 
 		blue = random.randrange(20) # how blue the snowflakes should be
-		self._fill_color = (255 - blue, 255 - blue, 255)
+		self._fill_color = (255 - blue, 255 - blue, 255, 240) 
 
 	# updates the snowflake's position and rotation based on the time passed
 	def update(self, time):
@@ -49,9 +50,7 @@ class Snowflake:
 		sin_theta = math.sin(dtheta)
 
 		# update all the points
-		for point in self._points:
-			
-			self._update_point(point, offsets, cos_theta, sin_theta)
+		self._points = [self._update_point(point, offsets, cos_theta, sin_theta) for point in self._points]
 
 
 	def _apply_damping(self):
@@ -94,21 +93,18 @@ class Snowflake:
 
 	def _update_point(self, point, offsets, cos_theta, sin_theta):
 		
-		# update position
-		point[0] += offsets[0]
-		point[1] += offsets[1]
+		radius = self._radius
 
-		# update rotation
-		point[0] -= self.loc[0]
-		point[1] -= self.loc[1]
+		point[0] -= radius
+		point[1] -= radius
 
 		new_x = point[0] * cos_theta - point[1] * sin_theta
 		new_y = point[0] * sin_theta + point[1] * cos_theta
 
-		point[0] = new_x + self.loc[0]
-		point[1] = new_y + self.loc[1]
+		point[0] = new_x + radius
+		point[1] = new_y + radius
 
-
+		return point
 		
 	# renders the snowflake to the given surface
 	def get_surface(self):
@@ -143,7 +139,7 @@ class Snowflake:
 		radius = math.sqrt(3) / 6 * tri_size  # radius of inscribed circle
 		height = math.sqrt(3) / 2 * tri_size  # height of triangle
 		height_P = height - radius  # distance from center to vertex
-		start = [self.loc[0], self.loc[1] - height_P]  # starting point
+		start = [self._radius, self._radius - height_P]  # starting point
 		point2 = [start[0] + tri_size / 2, start[1] + height]
 		point3 = [point2[0] - tri_size, point2[1]]
 

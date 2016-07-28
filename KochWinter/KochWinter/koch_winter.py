@@ -39,7 +39,7 @@ def main():
 	_screen.blit(_background, (0, 0))
 	pygame.display.flip()
 	
-	cProfile.run('loop()')
+	#cProfile.run('loop()')
 	loop()
 
 
@@ -120,11 +120,6 @@ def loop():
 			elif event.type == pygame.KEYUP:
 				key_pressed(event.key)
 
-		updated_flakes = 0
-
-		if (updated_flakes > len(_snowflakes)):
-			updated_flakes = 0
-
 		curr_millis = get_curr_millis()
 		elapsed_time = curr_millis - _prev_time
 
@@ -144,20 +139,11 @@ def loop():
 
 				add_snowflake()
 
-		# update the snowflakes
-		for i in range(updated_flakes, min(updated_flakes + 1, len(_snowflakes))):
-			_snowflakes[i].update(elapsed_time)
-
-		updated_flakes += 1
-
 		for flake in _snowflakes:
 
 			flake.update(elapsed_time)
-
-		# draw the snowflakes
-		for flake in _snowflakes:
-
 			_background.blit(flake.get_surface(), flake.loc)
+
 
 		if _debug:
 
@@ -171,7 +157,7 @@ def loop():
 def draw_background():
 
 	#TODO gradient
-	_background.fill((200, 200, 200))
+	_background.fill((230, 230, 230))
 
 
 def draw_debug_info():
